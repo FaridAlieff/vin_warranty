@@ -6,28 +6,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-*{box-sizing:border-box}
+*{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,sans-serif;
-  background:linear-gradient(180deg,#f5f7fb,#e9ecf2);
-  margin:0;
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
   padding:20px;
   color:#1c1c1e;
+  position:relative;
+  overflow:hidden;
 }
+
+/* Background video */
+.bg-video {
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  object-fit:cover;
+  z-index:-2;
+  filter: brightness(0.6);
+}
+
+/* Glass card */
 .card{
   width:100%;
   max-width:420px;
-  background:rgba(255,255,255,.75);
-  backdrop-filter:blur(20px);
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-radius:24px;
   padding:24px;
-  box-shadow:0 20px 40px rgba(0,0,0,.12);
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  z-index:1;
+  position:relative;
 }
-h1{text-align:center;margin-bottom:18px}
+h1{text-align:center;margin-bottom:18px;font-size:22px;}
 input,button{
   width:100%;
   padding:14px;
@@ -45,7 +60,7 @@ button{
 }
 .result{
   margin-top:16px;
-  background:#fff;
+  background:rgba(255,255,255,0.8);
   padding:14px;
   border-radius:14px;
   font-size:15px;
@@ -63,15 +78,23 @@ button{
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Car image */
 .car-img{
   margin-top:16px;
   width:100%;
   border-radius:14px;
 }
+@media (max-width:480px){
+  h1{font-size:20px;}
+}
 </style>
 </head>
 
 <body>
+
+<video class="bg-video" autoplay muted loop playsinline>
+  <source src="https://raw.githubusercontent.com/FaridAlieff/vin_warranty/main/3129671-uhd_3840_2160_30fps.mp4" type="video/mp4">
+</video>
 
 <div class="card">
   <h1>Zəmanət Yoxlama</h1>
@@ -106,7 +129,7 @@ async function checkWarranty(){
       .filter(l=>l.startsWith("{"))
       .map(l=>JSON.parse(l));
 
-    // EYNİ VIN-lər → ən köhnə tarix
+    // Eyni VIN → ən köhnə timestamp
     const matched=logs
       .filter(x=>x.vin===vin)
       .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
@@ -116,7 +139,7 @@ async function checkWarranty(){
       return;
     }
 
-    const item=matched[0]; // İLK yazılan
+    const item=matched[0]; // ilk yazılan
 
     const start=new Date(item.timestamp);
     const end=new Date(start);
