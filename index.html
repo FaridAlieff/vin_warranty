@@ -17,39 +17,51 @@ body{
   color:#1c1c1e;
   position:relative;
   overflow:hidden;
+  background:#000;
 }
 
-/* Background video */
+/* Background video + overlay */
 .bg-video {
   position:fixed;
   top:0; left:0;
   width:100vw; height:100vh;
   object-fit:cover;
   z-index:-2;
-  filter: brightness(0.6);
+  filter: brightness(0.5);
+}
+.bg-overlay{
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background:rgba(0,0,0,0.3);
+  z-index:-1;
 }
 
 /* Glass card */
 .card{
   width:100%;
-  max-width:420px;
+  max-width:450px;
   background: rgba(255,255,255,0.25);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
   border-radius:24px;
   padding:24px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  box-shadow:0 20px 40px rgba(0,0,0,0.3);
   z-index:1;
   position:relative;
+  transition: all 0.3s ease;
 }
-h1{text-align:center;margin-bottom:18px;font-size:22px;}
+h1{text-align:center;margin-bottom:18px;font-size:22px;color:#fff;}
 input,button{
   width:100%;
   padding:14px;
   font-size:16px;
   border-radius:14px;
 }
-input{border:1px solid #d1d1d6}
+input{
+  border:1px solid #d1d1d6;
+  outline:none;
+}
 button{
   margin-top:12px;
   border:none;
@@ -57,24 +69,40 @@ button{
   color:#fff;
   font-weight:600;
   cursor:pointer;
+  transition: transform 0.2s ease;
 }
+button:hover{transform: scale(1.03);}
+
+/* Fade-in/out animations */
+.fade-in{
+  opacity:0;
+  animation:fadeIn 0.6s forwards;
+}
+.fade-out{
+  opacity:1;
+  animation:fadeOut 0.5s forwards;
+}
+@keyframes fadeIn{to{opacity:1;}}
+@keyframes fadeOut{to{opacity:0;}}
+
 .result{
   margin-top:16px;
-  background:rgba(255,255,255,0.8);
+  background:rgba(255,255,255,0.85);
   padding:14px;
   border-radius:14px;
   font-size:15px;
   line-height:1.6;
+  transition: all 0.4s ease;
 }
 .ok{color:#34c759;font-weight:600}
 .bad{color:#ff3b30;font-weight:600}
 .loader{
-  width:28px;height:28px;
+  width:32px;height:32px;
   border:4px solid #d1d1d6;
   border-top-color:#007aff;
   border-radius:50%;
   animation:spin 1s linear infinite;
-  margin:10px auto;
+  margin:20px auto;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -84,8 +112,30 @@ button{
   width:100%;
   border-radius:14px;
 }
+
+/* Mənim məlumatlarım */
+.my-info{
+  margin-top:16px;
+  padding:14px;
+  background:rgba(255,255,255,0.7);
+  border-radius:14px;
+  font-size:15px;
+  line-height:1.6;
+}
+
+/* Qırmızı xəbərdarlıq */
+.warning{
+  margin-top:12px;
+  color:red;
+  font-weight:600;
+  font-size:14px;
+}
+
 @media (max-width:480px){
   h1{font-size:20px;}
+  .card{padding:18px;}
+  input,button{padding:12px;font-size:15px;}
+  .result, .my-info{font-size:14px;padding:12px;}
 }
 </style>
 </head>
@@ -95,6 +145,7 @@ button{
 <video class="bg-video" autoplay muted loop playsinline>
   <source src="https://raw.githubusercontent.com/FaridAlieff/vin_warranty/main/3129671-uhd_3840_2160_30fps.mp4" type="video/mp4">
 </video>
+<div class="bg-overlay"></div>
 
 <div class="card">
   <h1>Zəmanət Yoxlama</h1>
@@ -104,16 +155,18 @@ button{
 </div>
 
 <script>
+let lastResult = null;
+
 async function checkWarranty(){
   const vin=document.getElementById("vin").value.trim();
   const out=document.getElementById("out");
 
   if(!/^\d{6}$/.test(vin)){
-    out.innerHTML='<div class="result bad">VIN 6 rəqəm olmalıdır</div>';
+    showResult('<div class="result bad fade-in">VIN 6 rəqəm olmalıdır</div>');
     return;
   }
 
-  out.innerHTML='<div class="loader"></div>';
+  showResult('<div class="loader fade-in"></div>');
 
   try{
     const res=await fetch(
@@ -129,26 +182,24 @@ async function checkWarranty(){
       .filter(l=>l.startsWith("{"))
       .map(l=>JSON.parse(l));
 
-    // Eyni VIN → ən köhnə timestamp
     const matched=logs
       .filter(x=>x.vin===vin)
       .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
 
     if(!matched.length){
-      out.innerHTML='<div class="result bad">Zəmanət tapılmadı</div>';
+      showResult('<div class="result bad fade-in">Zəmanət tapılmadı</div>');
       return;
     }
 
-    const item=matched[0]; // ilk yazılan
-
+    const item=matched[0];
     const start=new Date(item.timestamp);
     const end=new Date(start);
     end.setFullYear(end.getFullYear()+1);
 
     const days=Math.ceil((end-new Date())/86400000);
 
-    out.innerHTML=`
-      <div class="result">
+    let html = `
+      <div class="result fade-in">
         <b>Model:</b> Changan Uni Z<br>
         <b>Zəmanət başlanğıcı:</b> ${start.toLocaleString("az-AZ")}<br>
         <b>Zəmanət bitmə tarixi:</b> ${end.toLocaleString("az-AZ")}<br>
@@ -159,8 +210,38 @@ async function checkWarranty(){
         <img class="car-img" src="https://changan.az/wp-content/uploads/2025/04/zuni.png.webp" alt="Changan Uni Z">
       </div>
     `;
+
+    if(days>0){
+      html += `
+        <div class="my-info fade-in">
+          <b>Proqramist:</b> Alıyev Fərid Ağacan oğlu<br>
+          <b>Xidmətlər:</b> Ekran sisteminin dil dəyişimi (Az və ya Ru)
+        </div>
+        <div class="warning fade-in">
+          * Youtube, Waze, Radio və s. proqramlar bizim tərəfimizdən hazırlanmadığına görə zəmanətə daxil deyil.
+        </div>
+      `;
+    }
+
+    showResult(html);
+
   }catch(e){
-    out.innerHTML='<div class="result bad">Data oxunarkən xəta</div>';
+    showResult('<div class="result bad fade-in">Data oxunarkən xəta</div>');
+  }
+}
+
+// Funksiya → əvvəlki nəticəni fade-out, sonra yeni nəticəni fade-in göstərir
+function showResult(html){
+  const out=document.getElementById("out");
+  if(lastResult){
+    lastResult.classList.add('fade-out');
+    setTimeout(()=>{
+      out.innerHTML = html;
+      lastResult = out.firstElementChild;
+    },500);
+  }else{
+    out.innerHTML = html;
+    lastResult = out.firstElementChild;
   }
 }
 </script>
