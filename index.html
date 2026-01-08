@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<title>Zəmanət Yoxlama</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: Inter, Arial, sans-serif;
+  background: radial-gradient(circle at top, #020617, #000);
+  color: #e5e7eb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+.card {
+  background: rgba(2,6,23,.9);
+  border-radius: 16px;
+  padding: 30px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 0 40px rgba(0,0,0,.6);
+}
+h1 {
+  font-size: 22px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+input {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: #020617;
+  color: #fff;
+}
+button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: #022c22;
+  cursor: pointer;
+}
+button:hover { opacity: .9; }
+.result {
+  margin-top: 20px;
+  background: #020617;
+  padding: 16px;
+  border-radius: 10px;
+  line-height: 1.6;
+}
+.ok { color: #22c55e; }
+.bad { color: #ef4444; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>Zəmanət Yoxlama</h1>
+  <input id="vin" placeholder="VIN kodunun son 6 rəqəmi">
+  <button onclick="checkWarranty()">Yoxla</button>
+  <div id="result"></div>
+</div>
+
+<script>
+async function checkWarranty() {
+  const vin = document.getElementById("vin").value.trim();
+  const box = document.getElementById("result");
+
+  if (!/^\d{6}$/.test(vin)) {
+    box.innerHTML = `<div class="result bad">❌ VIN 6 rəqəm olmalıdır</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      "https://raw.githubusercontent.com/FaridAlieff/vinkey_logs/main/logs.json",
+      { cache: "no-store" }
+    );
+    const logs = await res.json();
+
+    const item = logs.find(x => x.vin === vin);
+
+    if (!item) {
+      box.innerHTML = `<div class="result bad">❌ Zəmanət tapılmadı</div>`;
+      return;
+    }
+
+    // GMT → Asia/Baku (+4 saat)
+    const start = new Date(item.timestamp);
+    start.setHours(start.getHours() + 4);
+
+    // +1 il zəmanət
+    const end = new Date(start);
+    end.setFullYear(end.getFullYear() + 1);
+
+    const now = new Date();
+    const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+
+    box.innerHTML = `
+      <div class="result">
+        <b>Avtomobil modeli:</b> Changan Uni Z<br>
+        <b>Zəmanət başlanğıcı:</b> ${start.toLocaleString("az-AZ")}<br>
+        <b>Zəmanət bitmə tarixi:</b> ${end.toLocaleString("az-AZ")}<br>
+        <b>Status:</b>
+        <span class="${days > 0 ? 'ok' : 'bad'}">
+          ${days > 0 ? `Aktiv — ${days} gün qalıb` : 'Zəmanət bitib'}
+        </span>
+      </div>
+    `;
+  } catch (e) {
+    box.innerHTML = `<div class="result bad">⚠️ Sistem xətası</div>`;
+  }
+}
+</script>
+
+</body>
+</html>
