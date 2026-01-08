@@ -62,6 +62,12 @@ button{
   margin:10px auto;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.car-img{
+  margin-top:16px;
+  width:100%;
+  border-radius:14px;
+}
 </style>
 </head>
 
@@ -94,23 +100,25 @@ async function checkWarranty(){
 
     const text=await res.text();
 
-    // HƏR SƏTR AYRI JSON
     const logs=text
       .split("\n")
       .map(l=>l.trim())
       .filter(l=>l.startsWith("{"))
       .map(l=>JSON.parse(l));
 
-    const item=logs.find(x=>x.vin===vin);
+    // EYNİ VIN-lər → ən köhnə tarix
+    const matched=logs
+      .filter(x=>x.vin===vin)
+      .sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
 
-    if(!item){
+    if(!matched.length){
       out.innerHTML='<div class="result bad">Zəmanət tapılmadı</div>';
       return;
     }
 
-    const start=new Date(item.timestamp);
-    start.setHours(start.getHours()+4); // Asia/Baku
+    const item=matched[0]; // İLK yazılan
 
+    const start=new Date(item.timestamp);
     const end=new Date(start);
     end.setFullYear(end.getFullYear()+1);
 
@@ -119,12 +127,13 @@ async function checkWarranty(){
     out.innerHTML=`
       <div class="result">
         <b>Model:</b> Changan Uni Z<br>
-        <b>Başlama:</b> ${start.toLocaleString("az-AZ")}<br>
-        <b>Bitmə:</b> ${end.toLocaleString("az-AZ")}<br>
+        <b>Zəmanət başlanğıcı:</b> ${start.toLocaleString("az-AZ")}<br>
+        <b>Zəmanət bitmə tarixi:</b> ${end.toLocaleString("az-AZ")}<br>
         <b>Status:</b>
         <span class="${days>0?'ok':'bad'}">
           ${days>0?`Aktiv — ${days} gün qalıb`:'Zəmanət bitib'}
         </span>
+        <img class="car-img" src="https://changan.az/wp-content/uploads/2025/04/zuni.png.webp" alt="Changan Uni Z">
       </div>
     `;
   }catch(e){
