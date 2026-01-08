@@ -85,12 +85,15 @@ async function checkWarranty() {
   }
 
   try {
-    const res = await fetch(
-      "https://raw.githubusercontent.com/FaridAlieff/vinkey_logs/main/logs.json",
-      { cache: "no-store" }
-    );
-    const logs = await res.json();
+    // CORS proxy istifadə olunur
+    const proxy = "https://api.allorigins.win/raw?url=";
+    const url = encodeURIComponent("https://raw.githubusercontent.com/FaridAlieff/vinkey_logs/main/logs.json");
 
+    const res = await fetch(proxy + url, { cache: "no-store" });
+
+    if (!res.ok) throw new Error("Fetch xətası");
+
+    const logs = await res.json();
     const item = logs.find(x => x.vin === vin);
 
     if (!item) {
@@ -98,16 +101,14 @@ async function checkWarranty() {
       return;
     }
 
-    // GMT → Asia/Baku (+4 saat)
     const start = new Date(item.timestamp);
     start.setHours(start.getHours() + 4);
 
-    // +1 il zəmanət
     const end = new Date(start);
     end.setFullYear(end.getFullYear() + 1);
 
     const now = new Date();
-    const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil((end - now) / (1000*60*60*24));
 
     box.innerHTML = `
       <div class="result">
@@ -121,7 +122,7 @@ async function checkWarranty() {
       </div>
     `;
   } catch (e) {
-    box.innerHTML = `<div class="result bad">⚠️ Sistem xətası</div>`;
+    box.innerHTML = `<div class="result bad">⚠️ Yükləmə xətası</div>`;
   }
 }
 </script>
