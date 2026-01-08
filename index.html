@@ -21,26 +21,20 @@ body{
 .card{
   width:100%;
   max-width:420px;
-  background:rgba(255,255,255,.7);
+  background:rgba(255,255,255,.75);
   backdrop-filter:blur(20px);
   border-radius:24px;
   padding:24px;
   box-shadow:0 20px 40px rgba(0,0,0,.12);
 }
-h1{
-  text-align:center;
-  font-size:22px;
-  margin-bottom:18px;
-}
+h1{text-align:center;margin-bottom:18px}
 input,button{
   width:100%;
   padding:14px;
   font-size:16px;
   border-radius:14px;
 }
-input{
-  border:1px solid #d1d1d6;
-}
+input{border:1px solid #d1d1d6}
 button{
   margin-top:12px;
   border:none;
@@ -68,9 +62,6 @@ button{
   margin:10px auto;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-@media (max-width:480px){
-  h1{font-size:20px}
-}
 </style>
 </head>
 
@@ -101,9 +92,15 @@ async function checkWarranty(){
       {cache:"no-store"}
     );
 
-    if(!res.ok) throw new Error();
+    const text=await res.text();
 
-    const logs=await res.json();
+    // HƏR SƏTR AYRI JSON
+    const logs=text
+      .split("\n")
+      .map(l=>l.trim())
+      .filter(l=>l.startsWith("{"))
+      .map(l=>JSON.parse(l));
+
     const item=logs.find(x=>x.vin===vin);
 
     if(!item){
@@ -130,8 +127,8 @@ async function checkWarranty(){
         </span>
       </div>
     `;
-  }catch{
-    out.innerHTML='<div class="result bad">Yükləmə xətası</div>';
+  }catch(e){
+    out.innerHTML='<div class="result bad">Data oxunarkən xəta</div>';
   }
 }
 </script>
